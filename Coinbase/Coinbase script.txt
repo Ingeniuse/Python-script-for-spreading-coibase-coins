@@ -1,0 +1,50 @@
+import csv
+from coinbase.wallet.client import Client
+
+# Function to withdraw cryptocurrency
+def withdraw_crypto(client, account_id, address, amount, coin):
+    try:
+        withdrawal = client.withdraw(account_id, amount, coin, address)
+        print(f'Withdrew {amount} {coin} to {address}')
+    except Exception as e:
+        print(f'Error withdrawing {coin} to {address}: {e}')
+
+# Coinbase API credentials
+API_KEY = 'your_coinbase_api_key'
+API_SECRET = 'your_coinbase_api_secret'
+
+# Read addresses from CSV file
+addresses = []
+with open('addresses.csv', 'r') as csvfile:
+    csvreader = csv.reader(csvfile)
+    for row in csvreader:
+        addresses.append(row[0])  # Assuming the addresses are in the first column
+
+# Prompt the user for the cryptocurrency and amount to withdraw
+crypto = input("Enter the cryptocurrency to withdraw (e.g., BTC, ETH, USDT): ")
+total_amount = float(input(f"Enter the total {crypto} amount to withdraw (between 0.1 and 20.0): "))
+
+# Validate the amount
+if total_amount < 0.1 or total_amount > 20.0:
+    print("Invalid amount. Please enter a value between 0.1 and 20.0.")
+else:
+    # Calculate the amount to distribute to each address
+    amount_per_address = total_amount / len(addresses)
+
+    # Initialize Coinbase client
+    client = Client(API_KEY, API_SECRET)
+
+    # Get the account ID for the specified cryptocurrency
+    accounts = client.get_accounts()
+    account_id = None
+    for account in accounts.data:
+        if account.currency == crypto:
+            account_id = account.id
+            break
+
+    if account_id is None:
+        print(f"Unable to find {crypto} account on Coinbase.")
+    else:
+        # Withdraw cryptocurrency to each address
+        for address in addresses:
+            withdraw_crypto(client, account_id, address, amount_per_address, crypto)
